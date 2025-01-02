@@ -2,7 +2,14 @@ import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { ForecastData } from '../types/forecast';
 
-const ForecastItem: React.FC<{ forecast: ForecastData }> = ({ forecast }) => {
+interface ForecastItemProps {
+    forecast: ForecastData;
+    unit: 'metric' | 'imperial';
+}
+
+const ForecastItem: React.FC<ForecastItemProps> = ({ forecast, unit }) => {
+    const temp = Math.round(forecast.main.temp);
+    const unitSymbol = unit === 'metric' ? '°C' : '°F';
     const time = new Date(forecast.dt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const iconUrl = `http://openweathermap.org/img/w/${forecast.weather[0].icon}.png`;
     const description = forecast.weather[0].description;
@@ -16,7 +23,7 @@ const ForecastItem: React.FC<{ forecast: ForecastData }> = ({ forecast }) => {
                 onError={() => <Text>Icon unavailable</Text>}
                 accessibilityLabel={description}
             />
-            <Text>{Math.round(forecast.main.temp)}°C</Text>
+            <Text>{temp}{unitSymbol}</Text>
             {description && <Text style={styles.description}>{description}</Text>}
         </View>
     );

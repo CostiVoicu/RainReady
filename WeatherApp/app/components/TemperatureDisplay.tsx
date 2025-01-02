@@ -3,11 +3,14 @@ import { Text, StyleSheet } from 'react-native';
 
 interface TemperatureDisplayProps {
     temperature: number;
+    unit: 'metric' | 'imperial';
 }
 
-const TemperatureDisplay: React.FC<TemperatureDisplayProps> = ({ temperature }) => {
+const TemperatureDisplay: React.FC<TemperatureDisplayProps> = ({temperature, unit, }) => {
     const roundedTemp = Math.round(temperature);
-    return <Text style={styles.temperature}>{roundedTemp}°C</Text>;
+    const displayUnit = unit === 'metric' ? '°C' : '°F';
+
+    return <Text style={styles.temperature}>{roundedTemp}{displayUnit}</Text>;
 };
 
 const styles = StyleSheet.create({

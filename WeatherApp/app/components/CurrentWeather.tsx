@@ -3,21 +3,30 @@ import { View, Text, StyleSheet } from 'react-native';
 import { WeatherData } from '../types/weather';
 import WeatherIcon from './WeatherIcon';
 import TemperatureDisplay from './TemperatureDisplay';
+import {useSettings} from "../context/SettingsContent";
 
 interface CurrentWeatherProps {
     weather: WeatherData;
-    city: string | null; // Add city prop
+    city: string | null;
 }
 
 const CurrentWeather: React.FC<CurrentWeatherProps> = ({ weather, city }) => {
+    const { settings } = useSettings();
+    const feelsLikeTemp = weather.main.feels_like;
+    const feelsLikeUnit = settings.temperatureUnit === 'metric' ? '°C' : '°F';
+    const feelsLikeDisplayTemp = Math.round(feelsLikeTemp);
+
     return (
         <View style={styles.container}>
             <Text style={styles.city}>{city}</Text>
             <WeatherIcon iconCode={weather.weather[0].icon} />
             <Text style={styles.description}>{weather.weather[0].description}</Text>
-            <TemperatureDisplay temperature={weather.main.temp} />
+            <TemperatureDisplay
+                temperature={weather.main.temp}
+                unit={settings.temperatureUnit}
+            />
             <Text style={styles.feelsLike}>
-                Feels like: {Math.round(weather.main.feels_like)}°C
+                Feels like: {feelsLikeDisplayTemp}{feelsLikeUnit}
             </Text>
             <Text>Humidity: {weather.main.humidity}%</Text>
         </View>

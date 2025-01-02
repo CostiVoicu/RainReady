@@ -5,19 +5,29 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorDisplay from '../components/ErrorDisplay';
 import SearchBar from "../components/SearchBar";
 import ForecastGroup from "../components/ForecastGroup";
+import {useSettings} from "../context/SettingsContent";
+import {useFocusEffect} from "@react-navigation/native";
 
 const ForecastScreen = () => {
     const [forecastData, setForecastData] = useState<ForecastData[] | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [city, setCity] = useState<string>('Brasov');
+    const { settings } = useSettings();
+
+    useFocusEffect(
+        React.useCallback(() => {
+            fetchForecast(city);
+        }, [city, settings.temperatureUnit])
+    )
 
     const fetchForecast = async (cityName: string) => {
         setLoading(true);
         setError(null);
         try {
+            const units = settings.temperatureUnit === 'metric' ? 'metric' : 'imperial';
             const response = await fetch(
-                `https://api.openweathermap.org/data/2.5/forecast?q=${cityName}&appid=82a111975d27d92374d1553c50bc4a0a&units=metric`
+                `https://api.openweathermap.org/data/2.5/forecast?q=${cityName}&appid=82a111975d27d92374d1553c50bc4a0a&units=${units}`
             );
             if (!response.ok) {
                 if (response.status === 404) {

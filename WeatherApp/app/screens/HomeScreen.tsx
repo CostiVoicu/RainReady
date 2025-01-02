@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-import { View, Text, StyleSheet, ActivityIndicator, Platform, Button } from 'react-native';
+import {View, Text, StyleSheet, Platform, Button, Alert} from 'react-native';
 import { WeatherData } from '../types/weather';
 import CurrentWeather from '../components/CurrentWeather';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorDisplay from '../components/ErrorDisplay';
+import {useSettings} from "../context/SettingsContent";
 
 
 Notifications.setNotificationHandler({
@@ -17,6 +18,7 @@ Notifications.setNotificationHandler({
 });
 
 const HomeScreen = () => {
+    const { settings } = useSettings();
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -55,8 +57,9 @@ const HomeScreen = () => {
 
         const fetchWeather = async (latitude: number, longitude: number) => {
             try {
+                const units = settings.temperatureUnit === 'metric' ? 'metric' : 'imperial';
                 const response = await fetch(
-                    `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=82a111975d27d92374d1553c50bc4a0a&units=metric`
+                    `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=82a111975d27d92374d1553c50bc4a0a&units=${units}`
                 );
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -73,16 +76,35 @@ const HomeScreen = () => {
 
         getLocation();
         registerForPushNotificationsAsync();
-    }, []);
+    }, [settings]);
 
     useEffect(() => {
         const scheduleNotifications = async () => {
-            if (weatherData) {
-                if (lastTemperature !== null && Math.abs(weatherData.main.temp - lastTemperature) >= 5) {
+            if (weatherData  && settings.notifications) {
+                let tempDiff = null;
+                let units = null;
+
+                if (lastTemperature !== null) {
+                    tempDiff = Math.abs(weatherData.main.temp - lastTemperature);
+
+                    if (settings.temperatureUnit === 'metric') {
+                        if (tempDiff > 15){
+                            tempDiff = Math.abs((weatherData.main.temp * 9 / 5 + 32) - lastTemperature);
+                        }
+                        units = '°C';
+                    } else {
+                        if (tempDiff > 15){
+                            tempDiff = Math.abs(weatherData.main.temp - (lastTemperature * 9 / 5 + 32));
+                        }
+                        units = '°F';
+                    }
+                }
+
+                if (tempDiff !== null && tempDiff >= 5) {
                     Notifications.scheduleNotificationAsync({
                         content: {
                             title: "Be careful of temperature changes!",
-                            body: `The temperature varied with ${Math.abs(weatherData.main.temp - lastTemperature)}°C.`,
+                            body: `The temperature varied with ${tempDiff}${units}.`,
                         },
                         trigger: null,
                     });
@@ -100,10 +122,12 @@ const HomeScreen = () => {
                     });
                 }
                 setLastRainStatus(currentRainStatus);
+            }else {
+                Notifications.cancelAllScheduledNotificationsAsync()
             }
         };
         scheduleNotifications();
-    }, [weatherData, lastTemperature, lastRainStatus]);
+    }, [weatherData, settings.notifications, lastTemperature, lastRainStatus]);
 
 
     if (loading) {
@@ -118,10 +142,24 @@ const HomeScreen = () => {
         return <View style={styles.centered}><Text>No weather data is available.</Text></View>;
     }
 
+    const handleTestNotification = async () => {
+        if (settings.notifications) {
+            Notifications.scheduleNotificationAsync({
+                content: { title: "Test Notification", body: "This is a test notification." },
+                trigger: null,
+            });
+        } else {
+            Alert.alert("Notifications Disabled", "Please enable notifications in settings to receive test notifications.");
+        }
+    };
+
     return (
         <View style={styles.container}>
             <CurrentWeather weather={weatherData} city={city} />
-            <Button title="Test Immediate Notification" onPress={() => { Notifications.scheduleNotificationAsync({ content: { title: "test", body: "test" }, trigger: null }) }} />
+            <Button
+                title="Test Immediate Notification"
+                onPress={handleTestNotification}
+            />
         </View>
     );
 };
