@@ -1,14 +1,26 @@
+import React, { useState, useEffect } from 'react';
 import * as Location from 'expo-location';
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import { View, Text, StyleSheet, ActivityIndicator, Platform, Button } from 'react-native';
 import { WeatherData } from '../types/weather';
 import CurrentWeather from '../components/CurrentWeather';
+
+
+Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+    }),
+});
 
 const HomeScreen = () => {
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [city, setCity] = useState<string | null>(null);
+    const [lastTemperature, setLastTemperature] = useState<number | null>(null);
+    const [lastRainStatus, setLastRainStatus] = useState(false);
 
     useEffect(() => {
         const getLocation = async () => {
@@ -29,7 +41,7 @@ const HomeScreen = () => {
                 });
 
                 if (address && address.length > 0) {
-                    setCity(address[0].city); // Extract city name
+                    setCity(address[0].city);
                 } else {
                     setCity("Unknown Location");
                 }
@@ -56,27 +68,94 @@ const HomeScreen = () => {
                 setLoading(false);
             }
         };
+
         getLocation();
+        registerForPushNotificationsAsync();
     }, []);
 
+    useEffect(() => {
+        const scheduleNotifications = async () => {
+            if (weatherData) {
+                if (lastTemperature !== null && Math.abs(weatherData.main.temp - lastTemperature) >= 5) {
+                    Notifications.scheduleNotificationAsync({
+                        content: {
+                            title: "Be careful of temperature changes!",
+                            body: `The temperature varied with ${Math.abs(weatherData.main.temp - lastTemperature)}°C.`,
+                        },
+                        trigger: null,
+                    });
+                }
+                setLastTemperature(weatherData.main.temp);
+
+                const currentRainStatus = weatherData.weather.some(condition => condition.main.toLowerCase() === 'rain' || condition.main.toLowerCase() === 'drizzle' || condition.main.toLowerCase() === 'thunderstorm');
+                if (lastRainStatus !== currentRainStatus) {
+                    Notifications.scheduleNotificationAsync({
+                        content: {
+                            title: currentRainStatus ? "The rain has started!" : "The rain has stopped!",
+                            body: currentRainStatus ? "Don't forget your umbrella!" : "The sun is out!",
+                        },
+                        trigger: null,
+                    });
+                }
+                setLastRainStatus(currentRainStatus);
+            }
+        };
+        scheduleNotifications();
+    }, [weatherData, lastTemperature, lastRainStatus]);
+
+
     if (loading) {
-        return <View style={styles.centered}><ActivityIndicator size="large" color="#0000ff" /></View>;
+        return (
+            <View style={styles.centered}>
+                <ActivityIndicator size="large" color="#0000ff" />
+            </View>
+        );
     }
 
     if (error) {
-        return <View style={styles.centered}><Text style={styles.errorText}>{error}</Text></View>;
+        return (
+            <View style={styles.centered}>
+                <Text style={{ color: 'red' }}>{error}</Text>
+            </View>
+        );
     }
 
     if (!weatherData) {
-        return <View style={styles.centered}><Text>No weather data available.</Text></View>;
+        return <View style={styles.centered}><Text>No weather data is available.</Text></View>;
     }
 
     return (
         <View style={styles.container}>
-            <CurrentWeather weather={weatherData} city={city}/>
+            <CurrentWeather weather={weatherData} city={city} />
+            <Button title="Test Immediate Notification" onPress={() => { Notifications.scheduleNotificationAsync({ content: { title: "test", body: "test" }, trigger: null }) }} />
         </View>
     );
 };
+
+async function registerForPushNotificationsAsync() {
+    let token;
+    if (Platform.OS === 'android') {
+        Notifications.setNotificationChannelAsync('default', {
+            name: 'default',
+            importance: Notifications.AndroidImportance.MAX,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#FF231F7C',
+        });
+    }
+
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+    }
+    if (finalStatus !== 'granted') {
+        alert('Could not get push notification token!');
+        return;
+    }
+    token = await Notifications.getExpoPushTokenAsync();
+    return token;
+}
 
 const styles = StyleSheet.create({
     container: {
@@ -90,11 +169,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center'
     },
-    errorText: {
-        color: 'red',
-        textAlign: 'center',
-        marginTop: 20
-    }
 });
 
 export default HomeScreen;
