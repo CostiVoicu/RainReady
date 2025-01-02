@@ -5,12 +5,19 @@ import { ForecastData } from '../types/forecast';
 const ForecastItem: React.FC<{ forecast: ForecastData }> = ({ forecast }) => {
     const time = new Date(forecast.dt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const iconUrl = `http://openweathermap.org/img/w/${forecast.weather[0].icon}.png`;
+    const description = forecast.weather[0].description;
 
     return (
         <View style={styles.container}>
             <Text>{time}</Text>
-            <Image style={styles.icon} source={{ uri: iconUrl }} />
+            <Image
+                style={styles.icon}
+                source={{ uri: iconUrl }}
+                onError={() => <Text>Icon unavailable</Text>}
+                accessibilityLabel={description}
+            />
             <Text>{Math.round(forecast.main.temp)}°C</Text>
+            {description && <Text style={styles.description}>{description}</Text>}
         </View>
     );
 };
@@ -23,6 +30,10 @@ const styles = StyleSheet.create({
     icon: {
         width: 50,
         height: 50,
+    },
+    description: {
+        fontSize: 12,
+        fontStyle: 'italic',
     },
 });
 
