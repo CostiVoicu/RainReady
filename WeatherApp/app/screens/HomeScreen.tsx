@@ -4,6 +4,8 @@ import * as Notifications from 'expo-notifications';
 import { View, Text, StyleSheet, ActivityIndicator, Platform, Button } from 'react-native';
 import { WeatherData } from '../types/weather';
 import CurrentWeather from '../components/CurrentWeather';
+import LoadingSpinner from '../components/LoadingSpinner';
+import ErrorDisplay from '../components/ErrorDisplay';
 
 
 Notifications.setNotificationHandler({
@@ -105,19 +107,11 @@ const HomeScreen = () => {
 
 
     if (loading) {
-        return (
-            <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#0000ff" />
-            </View>
-        );
+        return <LoadingSpinner />;
     }
 
     if (error) {
-        return (
-            <View style={styles.centered}>
-                <Text style={{ color: 'red' }}>{error}</Text>
-            </View>
-        );
+        return <ErrorDisplay message={error} />;
     }
 
     if (!weatherData) {
