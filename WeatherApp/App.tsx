@@ -1,4 +1,5 @@
-import React from 'react';
+import * as React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
 import Navigation from './app/navigation';
 import * as Notifications from 'expo-notifications';
 
@@ -11,5 +12,9 @@ Notifications.setNotificationHandler({
 });
 
 export default function App() {
-  return <Navigation />;
+  return (
+      <NavigationContainer>
+        <Navigation />
+      </NavigationContainer>
+  );
 }
