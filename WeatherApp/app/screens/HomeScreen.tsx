@@ -51,7 +51,6 @@ const HomeScreen = () => {
                 }
             } catch (error) {
                 setError("Could not get location.");
-                console.error("Error getting location:", error);
             }
         };
 
@@ -68,7 +67,6 @@ const HomeScreen = () => {
                 setWeatherData(data);
             } catch (err) {
                 setError("Could not load weather data.");
-                console.error("Error fetching weather:", err);
             } finally {
                 setLoading(false);
             }
