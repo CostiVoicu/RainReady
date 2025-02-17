@@ -37,18 +37,24 @@ This application is designed and built exclusively for mobile platforms (iOS and
 
 ### Home Screen - Current Weather
 
-[![Home Screen Screenshot](screenshots/home_screen_screenshot.jpg)](screenshots/home_screen_screenshot.jpg)
-*Shows the current temperature and weather for the user's location.*
+Shows the current temperature and weather for the user's location. 
+<center>
+  <img src="screenshots/home_screen_screenshot.jpg" width="35%">
+</center>
 
 ### Forecast Page - City Search and 6-day Forecast
 
-[![Forecast Page Screenshot](screenshots/forecast_screen_screenshot.jpg)](screenshots/forecast_screen_screenshot.jpg)
-*Demonstrates searching for a city and viewing the 6-day forecast.*
+Demonstrates searching for a city and viewing the 6-day forecast.
+<center>
+  <img src="screenshots/forecast_screen_screenshot.jpg" width="35%">
+</center>
 
 ### Settings Screen - Notifications and Units
 
-[![Settings Screen Screenshot](screenshots/settings_screen_screenshot.jpg)](screenshots/settings_screen_screenshot.jpg)
-*Shows the settings screen with options for rain notifications, temperature change notifications, and unit selection.*
+Shows the settings screen with options for rain notifications, temperature change notifications, and unit selection.
+<center>
+  <img src="screenshots/settings_screen_screenshot.jpg" width="35%">
+</center>
 
 ## Setup and Installation
 
