@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import {View, Text, StyleSheet, Platform, Button, Alert} from 'react-native';
@@ -7,7 +7,7 @@ import CurrentWeather from '../components/CurrentWeather';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorDisplay from '../components/ErrorDisplay';
 import {useSettings} from "../context/SettingsContent";
-
+import { useFocusEffect } from '@react-navigation/native'; 
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -26,55 +26,67 @@ const HomeScreen = () => {
     const [lastTemperature, setLastTemperature] = useState<number | null>(null);
     const [lastRainStatus, setLastRainStatus] = useState(false);
 
-    useEffect(() => {
-        const getLocation = async () => {
-            try {
-                let { status } = await Location.requestForegroundPermissionsAsync();
-                if (status !== 'granted') {
-                    setError('Permission to access location was denied.');
-                    return;
-                }
-
-                let location = await Location.getCurrentPositionAsync({});
-                const { latitude, longitude } = location.coords;
-                fetchWeather(latitude, longitude);
-
-                let address = await Location.reverseGeocodeAsync({
-                    latitude,
-                    longitude,
-                });
-
-                if (address && address.length > 0) {
-                    setCity(address[0].city);
-                } else {
-                    setCity("Unknown Location");
-                }
-            } catch (error) {
-                setError("Could not get location.");
+    const fetchWeather = useCallback(async (latitude: number, longitude: number) => {
+        try {
+            const units = settings.temperatureUnit === 'metric' ? 'metric' : 'imperial';
+            const response = await fetch(
+                `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=82a111975d27d92374d1553c50bc4a0a&units=${units}`
+            );
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        };
-
-        const fetchWeather = async (latitude: number, longitude: number) => {
-            try {
-                const units = settings.temperatureUnit === 'metric' ? 'metric' : 'imperial';
-                const response = await fetch(
-                    `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=82a111975d27d92374d1553c50bc4a0a&units=${units}`
-                );
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                setWeatherData(data);
-            } catch (err) {
-                setError("Could not load weather data.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        getLocation();
-        registerForPushNotificationsAsync();
+            const data = await response.json();
+            setWeatherData(data);
+        } catch (err) {
+            setError("Could not load weather data.");
+        } finally {
+            setLoading(false);
+        }
     }, [settings]);
+
+    const getLocationAndFetchWeather = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                setError('Permission to access location was denied.');
+                setLoading(false);
+                return;
+            }
+
+            let location = await Location.getCurrentPositionAsync({});
+            const { latitude, longitude } = location.coords;
+            await fetchWeather(latitude, longitude);
+
+            let address = await Location.reverseGeocodeAsync({
+                latitude,
+                longitude,
+            });
+
+            if (address && address.length > 0) {
+                setCity(address[0].city);
+            } else {
+                setCity("Unknown Location");
+            }
+        } catch (error) {
+            setError("Could not get location.");
+            setLoading(false);
+        }
+    }, [fetchWeather]);
+
+    useFocusEffect(
+        useCallback(() => {
+            getLocationAndFetchWeather();
+            return () => {
+            };
+        }, [getLocationAndFetchWeather])
+    );
+
+    useEffect(() => {
+        getLocationAndFetchWeather();
+    }, [settings, getLocationAndFetchWeather]);
+
 
     useEffect(() => {
         const scheduleNotifications = async () => {
@@ -154,10 +166,10 @@ const HomeScreen = () => {
     return (
         <View style={styles.container}>
             <CurrentWeather weather={weatherData} city={city} />
-            <Button
-                title="Test Immediate Notification"
-                onPress={handleTestNotification}
-            />
+            {/*<Button*/}
+            {/*    title="Test Immediate Notification"*/}
+            {/*    onPress={handleTestNotification}*/}
+            {/*/>*/}
         </View>
     );
 };
